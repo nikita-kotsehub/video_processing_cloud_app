@@ -1,0 +1,4 @@
+moviepy
+srt
+youtube-transcript-api
+pytube

@@ -1,0 +1,122 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: NAT-Gateway for each public subnet
+
+Parameters:
+  ExportVpcStackName: 
+    Description: The name of the vpc stack
+    Type: String
+
+# Elastic IP for the Nat-Gateway
+Resources:
+  NatGateway1EIP:
+    Type: AWS::EC2::EIP
+    Properties: 
+      Domain: VPC
+      Tags: 
+        - Key: Name
+          Value: EIP 1
+    
+  NatGateway2EIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: VPC
+      Tags:
+        - Key: Name
+          Value: EIP 2
+    
+  # Create a NatGateway so that we can forward all internet-bound traffic from private subnet to the internet
+  NatGateway1:
+    Type: AWS::EC2::NatGateway
+    Properties: 
+      AllocationId: !GetAtt NatGateway1EIP.AllocationId
+      SubnetId: 
+        Fn::ImportValue: !Sub ${ExportVpcStackName}-PublicSubnet1
+      Tags: 
+        - Key: Name
+          Value: Nat Gateway for Public Subnet 1
+        
+  NatGateway2:
+    Type: AWS::EC2::NatGateway
+    Properties: 
+      AllocationId: !GetAtt NatGateway2EIP.AllocationId
+      SubnetId: 
+        Fn::ImportValue: !Sub ${ExportVpcStackName}-PublicSubnet2
+      Tags: 
+        - Key: Name
+          Value: Nat Gateway for Public Subnet 2
+
+  # Route Table 
+  PrivateRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties: 
+      Tags: 
+        - Key: Name
+          Value: Private Route Table 1
+      VpcId:
+        Fn::ImportValue: !Sub ${ExportVpcStackName}-VPC
+
+  # Route that tells all Internet-bound traffic from the private subnet to be forwarded to the Nat-Gateway
+  PrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties: 
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway1
+      RouteTableId: !Ref PrivateRouteTable1
+
+  # associate the Route Table with the Private Subnet
+  PrivateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref PrivateRouteTable1
+      SubnetId: 
+        Fn::ImportValue: !Sub ${ExportVpcStackName}-PrivateSubnet1
+
+  PrivateSubnet3RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref PrivateRouteTable1
+      SubnetId: 
+        Fn::ImportValue: !Sub ${ExportVpcStackName}-PrivateSubnet3
+
+
+  # Route Table 
+  PrivateRouteTable2:
+    Type: AWS::EC2::RouteTable
+    Properties: 
+      Tags: 
+        - Key: Name
+          Value: Private Route Table 2 for Nat Gateway 2
+      VpcId:
+        Fn::ImportValue: !Sub ${ExportVpcStackName}-VPC
+
+  # Route that tells all Internet-bound traffic from the private subnet to be forwarded to the Nat-Gateway
+  PrivateRoute2:
+    Type: AWS::EC2::Route
+    Properties: 
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway2
+      RouteTableId: !Ref PrivateRouteTable2
+
+  # associate the Route Table with the Private Subnet
+  PrivateSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref PrivateRouteTable2
+      SubnetId: 
+        Fn::ImportValue: !Sub ${ExportVpcStackName}-PrivateSubnet2
+
+  PrivateSubnet4RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref PrivateRouteTable2
+      SubnetId: 
+        Fn::ImportValue: !Sub ${ExportVpcStackName}-PrivateSubnet4
+
+
+
+
+
+
+
